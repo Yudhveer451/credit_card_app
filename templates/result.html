@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>CreditGuard — Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #05060f;
+    --surface: #0d0f1e;
+    --card: #12152a;
+    --border: rgba(99,115,255,0.18);
+    --accent: #6373ff;
+    --accent2: #ff6b6b;
+    --text: #e8eaf6;
+    --muted: #8892b0;
+    --success: #43e97b;
+    --danger: #ff6b6b;
+    --sidebar-w: 240px;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+  }
+  body::before {
+    content: ''; position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(99,115,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(99,115,255,0.03) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: var(--sidebar-w); min-height: 100vh;
+    background: var(--card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; padding: 24px 0;
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 100;
+  }
+  .sidebar-logo { padding: 0 24px 24px; border-bottom: 1px solid var(--border); }
+  .sidebar-logo span { font-size: 28px; }
+  .sidebar-logo h2 {
+    font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.2rem;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-top: 4px;
+  }
+  .sidebar-nav { flex: 1; padding: 16px 12px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; border-radius: 10px;
+    color: var(--muted); font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; margin-bottom: 4px; text-decoration: none;
+  }
+  .nav-item:hover { background: rgba(99,115,255,0.08); color: var(--text); }
+  .nav-item.active { background: rgba(99,115,255,0.15); color: var(--accent); }
+  .nav-item .icon { font-size: 18px; width: 24px; text-align: center; }
+  .sidebar-user {
+    padding: 16px 24px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; gap: 12px;
+  }
+  .user-avatar {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #a78bfa);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem; color: #fff; flex-shrink: 0;
+  }
+  .user-name { font-size: 0.85rem; font-weight: 500; }
+  .logout-btn {
+    margin-left: auto; background: none; border: none;
+    color: var(--muted); cursor: pointer; font-size: 18px; padding: 4px; transition: color 0.2s;
+  }
+  .logout-btn:hover { color: var(--accent2); }
+
+  /* Main */
+  .main {
+    margin-left: var(--sidebar-w); flex: 1; padding: 40px 48px;
+    max-width: calc(100vw - var(--sidebar-w));
+    position: relative; z-index: 1;
+  }
+  .page-header { margin-bottom: 36px; animation: fadeDown 0.5s ease; }
+  .page-header h1 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
+  .page-header p { color: var(--muted); margin-top: 6px; }
+
+  /* Result hero */
+  .result-hero {
+    position: relative; border-radius: 20px; padding: 48px 40px;
+    margin-bottom: 28px; overflow: hidden; animation: fadeUp 0.5s ease 0.1s both;
+  }
+  .result-hero.safe { background: linear-gradient(135deg, rgba(67,233,123,0.08), rgba(67,233,123,0.02)); border: 1px solid rgba(67,233,123,0.25); }
+  .result-hero.risk { background: linear-gradient(135deg, rgba(255,107,107,0.08), rgba(255,107,107,0.02)); border: 1px solid rgba(255,107,107,0.25); }
+  .result-hero.no-data { background: var(--card); border: 1px solid var(--border); }
+
+  .hero-bg-text {
+    position: absolute; right: -20px; bottom: -30px;
+    font-family: 'Syne', sans-serif; font-size: 10rem; font-weight: 800;
+    opacity: 0.04; line-height: 1; pointer-events: none; user-select: none;
+  }
+  .result-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 30px; font-size: 0.8rem;
+    font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px;
+  }
+  .badge-safe { background: rgba(67,233,123,0.15); color: var(--success); border: 1px solid rgba(67,233,123,0.3); }
+  .badge-risk { background: rgba(255,107,107,0.15); color: var(--danger); border: 1px solid rgba(255,107,107,0.3); }
+  .badge-none { background: rgba(99,115,255,0.1); color: var(--accent); border: 1px solid rgba(99,115,255,0.2); }
+
+  .result-headline { font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800; line-height: 1.15; margin-bottom: 12px; }
+  .result-sub { color: var(--muted); font-size: 1rem; max-width: 480px; line-height: 1.6; }
+
+  .prob-section { margin-top: 32px; }
+  .prob-label { display: flex; justify-content: space-between; font-size: 0.82rem; color: var(--muted); margin-bottom: 10px; }
+  .prob-label strong { color: var(--text); font-size: 1.1rem; }
+  .prob-track { height: 12px; background: rgba(255,255,255,0.06); border-radius: 20px; overflow: hidden; }
+  .prob-fill { height: 100%; border-radius: 20px; width: 0%; transition: width 1.6s cubic-bezier(0.16,1,0.3,1); }
+  .prob-fill.safe { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+  .prob-fill.risk { background: linear-gradient(90deg, #f7971e, #ff6b6b); }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px; margin-bottom: 28px; animation: fadeUp 0.5s ease 0.2s both;
+  }
+  .stat-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    transition: border-color 0.2s, transform 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(99,115,255,0.35); transform: translateY(-2px); }
+  .stat-icon { font-size: 22px; margin-bottom: 10px; }
+  .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-value { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+
+  /* Two column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.5s ease 0.3s both;
+  }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+  .section-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px; margin-bottom: 24px;
+    animation: fadeUp 0.5s ease 0.3s both;
+  }
+  .two-col .section-card { margin-bottom: 0; animation: none; }
+
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+  }
+  .section-title .s-icon {
+    width: 36px; height: 36px; background: rgba(99,115,255,0.12);
+    border: 1px solid rgba(99,115,255,0.25); border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .section-title h3 { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; }
+
+  .input-table {
+    width: 100%; border-collapse: collapse; font-size: 0.88rem;
+  }
+  .input-table th, .input-table td {
+    text-align: left; padding: 10px 14px;
+    border-bottom: 1px solid rgba(99,115,255,0.08);
+  }
+  .input-table th { color: var(--muted); font-weight: 500; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.4px; }
+  .input-table td:last-child { font-weight: 500; color: var(--text); text-align: right; }
+  .input-table tr:last-child td { border-bottom: none; }
+
+  /* Comparison bar inline in table */
+  .inline-bar-wrap {
+    display: flex; align-items: center; gap: 10px; justify-content: flex-end;
+  }
+  .inline-bar-track {
+    width: 80px; height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 4px; overflow: hidden; flex-shrink: 0;
+  }
+  .inline-bar-fill {
+    height: 100%; border-radius: 4px;
+    width: 0%; transition: width 1s ease;
+  }
+  .bill-fill { background: linear-gradient(90deg, #ff6b6b, #f7971e); }
+  .pay-fill  { background: linear-gradient(90deg, #43e97b, #38f9d7); }
+
+  /* Main bar chart */
+  .chart-section {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 16px; padding: 28px;
+    margin-bottom: 24px; animation: fadeUp 0.5s ease 0.35s both;
+  }
+  .chart-legend {
+    display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.82rem; color: var(--muted);
+  }
+  .legend-dot {
+    width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0;
+  }
+  .legend-dot.bill { background: linear-gradient(135deg, #ff6b6b, #f7971e); }
+  .legend-dot.pay  { background: linear-gradient(135deg, #43e97b, #38f9d7); }
+
+  /* SVG chart */
+  .bar-chart-svg {
+    width: 100%; overflow: visible;
+  }
+
+  /* Pay status badges in table */
+  .pay-status-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 20px;
+    font-size: 0.75rem; font-weight: 600;
+  }
+  .pay-good { background: rgba(67,233,123,0.12); color: var(--success); border: 1px solid rgba(67,233,123,0.2); }
+  .pay-late { background: rgba(255,107,107,0.12); color: var(--danger); border: 1px solid rgba(255,107,107,0.2); }
+  .pay-revolv { background: rgba(99,115,255,0.12); color: var(--accent); border: 1px solid rgba(99,115,255,0.2); }
+
+  .btn-again {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 12px; color: #fff; text-decoration: none;
+    font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem;
+    transition: all 0.25s; margin-top: 8px;
+    animation: fadeUp 0.5s ease 0.5s both;
+  }
+  .btn-again:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(99,115,255,0.4); }
+
+  @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-12px); } to { opacity:1; transform:translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span>💳</span>
+    <h2>CreditGuard</h2>
+  </div>
+  <nav class="sidebar-nav">
+    <a class="nav-item" href="/predict-page"><span class="icon">🔍</span> Predict Default</a>
+    <a class="nav-item active" href="/dashboard"><span class="icon">📊</span> Dashboard</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="user-avatar">{{ username[0]|upper if username else 'U' }}</div>
+    <div class="user-name">{{ username or 'User' }}</div>
+    <button class="logout-btn" onclick="window.location.href='/logout'" title="Logout">⏻</button>
+  </div>
+</aside>
+
+<main class="main">
+  <div class="page-header">
+    <h1>Prediction Dashboard</h1>
+    <p>Analysis results for the submitted credit profile.</p>
+  </div>
+
+  {% if prediction is none %}
+  <!-- No prediction yet -->
+  <div class="result-hero no-data">
+    <div class="hero-bg-text">—</div>
+    <div class="result-badge badge-none">⏳ Awaiting Data</div>
+    <div class="result-headline">No prediction yet.</div>
+    <div class="result-sub">Submit a credit profile from the Predict page to see results here.</div>
+  </div>
+  <a class="btn-again" href="/predict-page">→ Go to Prediction Form</a>
+
+  {% else %}
+  {% set is_default = prediction == 1 %}
+
+  <!-- Result Hero -->
+  <div class="result-hero {{ 'risk' if is_default else 'safe' }}">
+    <div class="hero-bg-text">{{ '!' if is_default else '✓' }}</div>
+    {% if is_default %}
+    <div class="result-badge badge-risk">⚠ High Risk</div>
+    <div class="result-headline">Default Risk Detected</div>
+    <div class="result-sub">The model predicts this client is likely to default on their credit payment. Consider flagging for further review or risk mitigation.</div>
+    {% else %}
+    <div class="result-badge badge-safe">✓ Low Risk</div>
+    <div class="result-headline">No Default Predicted</div>
+    <div class="result-sub">The model indicates this client is unlikely to default. The credit profile appears financially stable.</div>
+    {% endif %}
+
+    <div class="prob-section">
+      <div class="prob-label">
+        <span>Default Probability</span>
+        <strong id="probDisplay">—</strong>
+      </div>
+      <div class="prob-track">
+        <div class="prob-fill {{ 'risk' if is_default else 'safe' }}" id="probFill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats Row — 6 cards -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon">🎯</div>
+      <div class="stat-label">Prediction</div>
+      <div class="stat-value" style="color:{{ '#ff6b6b' if is_default else '#43e97b' }}">
+        {{ 'Default' if is_default else 'No Default' }}
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">📉</div>
+      <div class="stat-label">Risk Probability</div>
+      <div class="stat-value" id="probStat">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">💳</div>
+      <div class="stat-label">Credit Limit</div>
+      <div class="stat-value">${{ "{:,}".format(inputs.get('LIMIT_BAL', 0)|int) }}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🧑</div>
+      <div class="stat-label">Age</div>
+      <div class="stat-value">{{ inputs.get('AGE', '—') }} yrs</div>
+    </div>
+  </div>
+
+  <!-- ── Main Bar Chart: Bill vs Payment ── -->
+  <div class="chart-section">
+    <div class="section-title" style="margin-bottom:16px;padding-bottom:14px">
+      <div class="s-icon">📊</div>
+      <h3>Bill vs Payment — Monthly Comparison</h3>
+    </div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot bill"></div> Bill Amount</div>
+      <div class="legend-item"><div class="legend-dot pay"></div> Payment Amount</div>
+    </div>
+    <svg class="bar-chart-svg" id="barChartSvg" viewBox="0 0 700 260" preserveAspectRatio="xMidYMid meet">
+      <!-- Rendered by JS -->
+    </svg>
+  </div>
+
+  <!-- Two-column detail tables with inline mini-bars -->
+  <div class="two-col">
+    <!-- Bill Statements -->
+    <div class="section-card">
+      <div class="section-title">
+        <div class="s-icon">🧾</div>
+        <h3>Bill Statement History</h3>
+      </div>
+      <table class="input-table">
+        <thead><tr><th>Month</th><th style="text-align:right">Amount</th></tr></thead>
+        <tbody id="billTable">
+          {% for i in range(1,7) %}
+          {% set val = inputs.get('BILL_AMT' ~ i, 0)|int %}
+          <tr>
+            <td>Month {{ i }}</td>
+            <td>
+              <div class="inline-bar-wrap">
+                <span>${{ "{:,}".format(val) }}</span>
+                <div class="inline-bar-track">
+                  <div class="inline-bar-fill bill-fill" data-val="{{ val }}" data-type="bill"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Payment History -->
+    <div class="section-card">
+      <div class="section-title">
+        <div class="s-icon">💰</div>
+        <h3>Payment History</h3>
+      </div>
+      <table class="input-table">
+        <thead><tr><th>Month</th><th style="text-align:right">Paid</th></tr></thead>
+        <tbody id="payTable">
+          {% for i in range(1,7) %}
+          {% set val = inputs.get('PAY_AMT' ~ i, 0)|int %}
+          <tr>
+            <td>Month {{ i }}</td>
+            <td>
+              <div class="inline-bar-wrap">
+                <span>${{ "{:,}".format(val) }}</span>
+                <div class="inline-bar-track">
+                  <div class="inline-bar-fill pay-fill" data-val="{{ val }}" data-type="pay"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Repayment Status Table -->
+  <div class="section-card">
+    <div class="section-title">
+      <div class="s-icon">📅</div>
+      <h3>Repayment Status by Month</h3>
+    </div>
+    <table class="input-table">
+      <thead><tr><th>Month</th><th>Pay Status</th><th style="text-align:right">Interpretation</th></tr></thead>
+      <tbody>
+        {% for i in range(0,6) %}
+        {% set pval = inputs.get('PAY_' ~ i, '—') %}
+        <tr>
+          <td>Month {{ i+1 }}{% if i == 0 %} <span style="font-size:0.7rem;color:var(--accent)">(latest)</span>{% endif %}</td>
+          <td><code style="font-size:0.85rem;color:var(--accent)">{{ pval }}</code></td>
+          <td style="text-align:right">
+            {% if pval == '-2' or pval == -2 %}
+              <span class="pay-status-badge pay-good">No consumption</span>
+            {% elif pval == '-1' or pval == -1 %}
+              <span class="pay-status-badge pay-good">✓ Paid in full</span>
+            {% elif pval == '0' or pval == 0 %}
+              <span class="pay-status-badge pay-revolv">Revolving</span>
+            {% else %}
+              <span class="pay-status-badge pay-late">⚠ {{ pval }}mo delay</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <a class="btn-again" href="/predict-page">← Run Another Prediction</a>
+
+  <script>
+    const prob = {{ prob }};
+    const probPct = Math.round(prob * 100);
+
+    // Probability bar
+    setTimeout(() => {
+      document.getElementById('probFill').style.width = probPct + '%';
+      document.getElementById('probDisplay').textContent = probPct + '%';
+      document.getElementById('probStat').textContent = probPct + '%';
+    }, 300);
+
+    // Data from Jinja
+    const bills = [
+      {{ inputs.get('BILL_AMT1', 0) }},
+      {{ inputs.get('BILL_AMT2', 0) }},
+      {{ inputs.get('BILL_AMT3', 0) }},
+      {{ inputs.get('BILL_AMT4', 0) }},
+      {{ inputs.get('BILL_AMT5', 0) }},
+      {{ inputs.get('BILL_AMT6', 0) }},
+    ];
+    const pays = [
+      {{ inputs.get('PAY_AMT1', 0) }},
+      {{ inputs.get('PAY_AMT2', 0) }},
+      {{ inputs.get('PAY_AMT3', 0) }},
+      {{ inputs.get('PAY_AMT4', 0) }},
+      {{ inputs.get('PAY_AMT5', 0) }},
+      {{ inputs.get('PAY_AMT6', 0) }},
+    ];
+    const labels = ['M1','M2','M3','M4','M5','M6'];
+
+    /* ── SVG Grouped Bar Chart ── */
+    function buildChart(progress) {
+      const svg = document.getElementById('barChartSvg');
+      const W = 700, H = 260;
+      const pad = { top: 20, bottom: 40, left: 55, right: 20 };
+      const chartW = W - pad.left - pad.right;
+      const chartH = H - pad.top - pad.bottom;
+
+      const allVals = [...bills, ...pays].filter(v => v > 0);
+      const maxVal = allVals.length ? Math.max(...allVals) : 1;
+
+      const groupW = chartW / 6;
+      const barW = groupW * 0.32;
+      const gap = groupW * 0.06;
+
+      // Y-axis gridlines
+      let svgContent = '';
+      const ySteps = 5;
+      for (let s = 0; s <= ySteps; s++) {
+        const yVal = (maxVal / ySteps) * s;
+        const y = pad.top + chartH - (yVal / maxVal) * chartH;
+        const label = yVal >= 1000 ? (yVal / 1000).toFixed(0) + 'k' : yVal.toFixed(0);
+        svgContent += `<line x1="${pad.left}" y1="${y}" x2="${W - pad.right}" y2="${y}" stroke="rgba(99,115,255,0.08)" stroke-width="1"/>`;
+        svgContent += `<text x="${pad.left - 6}" y="${y + 4}" text-anchor="end" fill="#8892b0" font-size="11" font-family="DM Sans">${label}</text>`;
+      }
+
+      // Bars per group
+      for (let i = 0; i < 6; i++) {
+        const gx = pad.left + i * groupW + groupW * 0.06;
+
+        // Bill bar
+        const bH = Math.max(0, (bills[i] / maxVal) * chartH * progress);
+        const bx = gx;
+        const by = pad.top + chartH - bH;
+        svgContent += `
+          <defs>
+            <linearGradient id="billGrad${i}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#ff6b6b"/>
+              <stop offset="100%" stop-color="#f7971e"/>
+            </linearGradient>
+          </defs>
+          <rect x="${bx}" y="${by}" width="${barW}" height="${bH}" rx="4" ry="4"
+                fill="url(#billGrad${i})" opacity="0.85"/>
+        `;
+        if (bills[i] > 0 && progress === 1) {
+          const dispVal = bills[i] >= 1000 ? (bills[i]/1000).toFixed(1)+'k' : bills[i];
+          svgContent += `<text x="${bx + barW/2}" y="${by - 4}" text-anchor="middle" fill="#ff9999" font-size="10" font-family="DM Sans">${dispVal}</text>`;
+        }
+
+        // Pay bar
+        const pH = Math.max(0, (pays[i] / maxVal) * chartH * progress);
+        const px = bx + barW + gap;
+        const py = pad.top + chartH - pH;
+        svgContent += `
+          <defs>
+            <linearGradient id="payGrad${i}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#43e97b"/>
+              <stop offset="100%" stop-color="#38f9d7"/>
+            </linearGradient>
+          </defs>
+          <rect x="${px}" y="${py}" width="${barW}" height="${pH}" rx="4" ry="4"
+                fill="url(#payGrad${i})" opacity="0.85"/>
+        `;
+        if (pays[i] > 0 && progress === 1) {
+          const dispVal = pays[i] >= 1000 ? (pays[i]/1000).toFixed(1)+'k' : pays[i];
+          svgContent += `<text x="${px + barW/2}" y="${py - 4}" text-anchor="middle" fill="#70f7a1" font-size="10" font-family="DM Sans">${dispVal}</text>`;
+        }
+
+        // X label
+        const cx = gx + barW + gap / 2;
+        svgContent += `<text x="${cx}" y="${H - 8}" text-anchor="middle" fill="#8892b0" font-size="12" font-family="DM Sans">${labels[i]}</text>`;
+
+        // Gap ratio indicator (bill:pay)
+        if (bills[i] > 0 && pays[i] > 0 && progress === 1) {
+          const ratio = (pays[i] / bills[i] * 100).toFixed(0);
+          const color = ratio >= 50 ? '#43e97b' : ratio >= 20 ? '#f7971e' : '#ff6b6b';
+          svgContent += `<text x="${cx}" y="${H - 22}" text-anchor="middle" fill="${color}" font-size="10" font-family="DM Sans" font-weight="600">${ratio}%</text>`;
+        }
+      }
+
+      // X axis line
+      svgContent += `<line x1="${pad.left}" y1="${pad.top + chartH}" x2="${W - pad.right}" y2="${pad.top + chartH}" stroke="rgba(99,115,255,0.2)" stroke-width="1"/>`;
+
+      // "% paid" label
+      if (progress === 1) {
+        svgContent += `<text x="${pad.left}" y="${H - 22}" fill="#8892b0" font-size="10" font-family="DM Sans">% paid</text>`;
+      }
+
+      svg.innerHTML = svgContent;
+    }
+
+    // Animate the chart
+    let startTime = null;
+    function animate(ts) {
+      if (!startTime) startTime = ts;
+      const p = Math.min((ts - startTime) / 1200, 1);
+      const ease = 1 - Math.pow(1 - p, 3);
+      buildChart(ease);
+      if (p < 1) requestAnimationFrame(animate);
+    }
+    setTimeout(() => requestAnimationFrame(animate), 500);
+
+    // Inline mini-bars
+    setTimeout(() => {
+      const billVals = bills;
+      const payVals  = pays;
+      const maxBill  = Math.max(...billVals, 1);
+      const maxPay   = Math.max(...payVals, 1);
+
+      document.querySelectorAll('.inline-bar-fill[data-type="bill"]').forEach((el, i) => {
+        const v = parseInt(el.dataset.val) || 0;
+        el.style.width = (v / maxBill * 100) + '%';
+      });
+      document.querySelectorAll('.inline-bar-fill[data-type="pay"]').forEach((el, i) => {
+        const v = parseInt(el.dataset.val) || 0;
+        el.style.width = (v / maxPay * 100) + '%';
+      });
+    }, 400);
+  </script>
+  {% endif %}
+</main>
+</body>
+</html>
